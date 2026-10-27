@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analisis Penggunaan PSS 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1b2440; --muted:#5d6785; --line:#e3e7f1;
+    --up:#16a085; --down:#c0392b; --off:#d9dee9; --accent:#0b3d91; --edit:#f8faff; --editLine:#c9d3ea;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;padding:24px 16px 48px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{background:linear-gradient(135deg,#0b3d91,#2f80ed);color:#fff;border-radius:18px;padding:28px 28px 24px;margin-bottom:16px}
+  header small{letter-spacing:.12em;text-transform:uppercase;opacity:.85;font-weight:600;font-size:.75rem}
+  header h1{font-size:1.65rem;font-weight:800;margin:6px 0 4px}
+  header p{opacity:.9;font-size:.95rem}
+  .topbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;background:#fffbea;border:1px solid #f3e2a3;border-radius:12px;padding:10px 14px;margin-bottom:20px;font-size:.85rem;color:#7a6418}
+  .btn{font:inherit;font-size:.82rem;font-weight:700;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:6px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .stat .lbl{font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  .stat .val{font-size:1.6rem;font-weight:800;margin-top:2px}
+  .stat .sub{font-size:.8rem;color:var(--muted)}
+  .up{color:var(--up)} .down{color:var(--down)}
+  h2{font-size:1.15rem;font-weight:800;margin:30px 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  h2 .tag{font-size:.7rem;font-weight:700;background:#e8eefc;color:var(--accent);padding:3px 10px;border-radius:99px;letter-spacing:.04em}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column}
+  .card h3{font-size:.98rem;font-weight:700}
+  .card .meta{font-size:.8rem;color:var(--muted);margin-bottom:10px}
+  .chart{position:relative;height:250px}
+  .wide .chart{height:320px}
+  .foot{margin-top:10px;font-size:.82rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+  .foot b{color:var(--ink)}
+  .note{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:.9rem;color:var(--muted);margin-top:14px}
+  .note b{color:var(--ink)}
+  input.num{width:100%;max-width:110px;padding:6px 8px;border:1.5px solid var(--editLine);border-radius:8px;font:inherit;font-weight:700;text-align:center;color:var(--ink);background:var(--edit)}
+  input.num:focus{outline:none;border-color:var(--accent);background:#fff}
+  input.num.sm{max-width:78px}
+  .stat input.num{max-width:140px;font-size:1.25rem;margin-top:4px}
+  .inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+  th,td{padding:9px 12px;text-align:center;border-bottom:1px solid var(--line)}
+  th{background:#eef2fb;font-weight:700}
+  td:first-child,th:first-child{text-align:left}
+  tfoot td{font-weight:800;background:#eef2fb}
+  .tbl{overflow-x:auto}
+  .bar{height:8px;background:#e8edf7;border-radius:99px;overflow:hidden;margin-top:4px;min-width:60px}
+  .bar i{display:block;height:100%;background:var(--up);border-radius:99px}
+  .acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:8px}
+  .act{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:.88rem}
+  .act b{display:block;font-size:.95rem;margin-bottom:2px}
+  [contenteditable="true"]{outline:none;border-radius:6px}
+  [contenteditable="true"]:hover{box-shadow:0 0 0 1.5px var(--editLine)}
+  [contenteditable="true"]:focus{box-shadow:0 0 0 2px var(--accent);background:#fff}
+  header [contenteditable="true"]:focus{background:rgba(255,255,255,.15)}
+  .sync{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:-8px 0 20px;font-size:.85rem}
+  .sync input{flex:1;min-width:220px;padding:8px 10px;border:1.5px solid var(--editLine);border-radius:8px;font:inherit;font-size:.82rem}
+  .sync a.btn{text-decoration:none}
+  .pill{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:.78rem;background:#eef1f7;color:var(--muted)}
+  .pill.ok{background:#e3f6f1;color:#0e7a63} .pill.busy{background:#fff5d6;color:#8a6d00} .pill.err{background:#fde8e8;color:var(--down)}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;margin-top:30px}
+  @media print{
+    body{background:#fff;padding:0}
+    header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .card,.stat{break-inside:avoid}
+    .topbar,.btn,.sync{display:none}
+    input.num{border:none;background:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <small contenteditable="true" data-text="hdrSmall">Pusat Sumber Sekolah · SK Seri Intan, Kluang</small>
+  <h1 contenteditable="true" data-text="hdrTitle">Analisis Penggunaan Perpustakaan 2026</h1>
+  <p contenteditable="true" data-text="hdrSub">Tempoh: Januari – Oktober 2026 · Perbandingan Jan–Jul dan Ogos–Okt</p>
+</header>
+
+<div class="topbar">
+  <span>✏️ Semua kotak nombor dan teks boleh diedit. Jumlah, peratus, jadual dan graf dikira semula secara automatik dan disimpan dalam pelayar ini.</span>
+  <span style="display:flex;gap:8px"><button class="btn" type="button" onclick="window.print()">Cetak</button><button class="btn" type="button" id="resetAll">Set Semula Semua</button></span>
+</div>
+<div class="sync" id="syncBar">
+  <span><b>Google Sheet:</b> <span id="syncStatus" class="pill">Belum disambung</span></span>
+  <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/AKfycbxVaaRx_MXh9tVsPxbupIJMzFqrPXJOxCH8lGuJQLZeW2YCGwkuC6B1kAckocKP0MHS/exec">
+  <button class="btn" type="button" id="sheetConnect">Sambung</button>
+  <button class="btn" type="button" id="sheetReload">Muat Semula dari Sheet</button>
+  <a class="btn" href="https://docs.google.com/spreadsheets/d/1B6ckKRDjVRHfWU1OnTx_GdwkELXKZ0uoJNUAFw4uDdM/edit" target="_blank" rel="noopener">Buka Sheet</a>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="lbl">Jumlah Murid</div><div class="val" data-out="total"></div><div class="sub">Prasekolah, Tahun 1–6 & PPKI</div></div>
+  <div class="stat"><div class="lbl">Penggunaan PSS</div><div class="val up"><span data-out="pssBefore"></span>% → <span data-out="pssAfter"></span>%</div><div class="sub" data-out="pssDiffTxt"></div></div>
+  <div class="stat"><div class="lbl">Murid Menggunakan PSS</div><div class="val up"><span data-out="pssNBefore"></span> → <span data-out="pssNAfter"></span></div><div class="sub" data-out="pssNDiffTxt"></div></div>
+</div>
+
+<!-- ===== A. ENROLMEN ===== -->
+<h2>A. Data Enrolmen Murid <span class="tag">BOLEH DIEDIT</span></h2>
+<div class="tbl">
+<table>
+  <thead><tr><th>Kategori</th><th>Bil. Murid</th><th>Peratus daripada Jumlah</th></tr></thead>
+  <tbody id="enrolBody"></tbody>
+  <tfoot><tr><td>Jumlah</td><td data-out="total"></td><td>100%</td></tr></tfoot>
+</table>
+</div>
+
+<!-- ===== B. PENGGUNAAN PSS ===== -->
+<h2>B. Penggunaan PSS <span class="tag" data-out="totalTag"></span></h2>
+<div class="grid">
+  <div class="card">
+    <h3>Januari – Julai</h3>
+    <div class="inline">Peratus penggunaan: <input class="num sm" type="number" min="0" max="100" step="0.1" data-path="pss.before"> %</div>
+    <div class="chart"><canvas id="pA"></canvas></div>
+    <div class="foot">≈ <b data-out="pssNBefore"></b> murid menggunakan PSS</div>
+  </div>
+  <div class="card">
+    <h3>Ogos – Oktober</h3>
+    <div class="inline">Peratus penggunaan: <input class="num sm" type="number" min="0" max="100" step="0.1" data-path="pss.after"> %</div>
+    <div class="chart"><canvas id="pB"></canvas></div>
+    <div class="foot">≈ <b data-out="pssNAfter"></b> murid menggunakan PSS <span data-out="pssAfterDiff"></span></div>
+  </div>
+</div>
+<div class="note" contenteditable="true" data-text="notePss"><b>Sumber rekod:</b> Rekod penggunaan PSS yang didaftarkan oleh guru kelas yang membawa murid masuk ke perpustakaan.</div>
+
+<!-- ===== C. TREND ===== -->
+<h2>C. Trend Penggunaan PSS Bulanan <span class="tag">JAN – SEP 2026</span></h2>
+<div class="card wide">
+  <h3>Peratus Penggunaan PSS Keseluruhan Mengikut Bulan</h3>
+  <div class="meta">Keseluruhan <span data-out="total"></span> murid · Klik pada titik bulan untuk melihat bilangan murid · Garis putus menandakan permulaan aktiviti PSS (Ogos)</div>
+  <div class="chart"><canvas id="trend"></canvas></div>
+  <div id="trendInfo" class="foot"></div>
+  <div class="tbl" style="margin-top:12px">
+    <table>
+      <thead><tr id="trendHead"><th>Bulan</th></tr></thead>
+      <tbody>
+        <tr id="trendPctRow"><td><b>Peratus (%)</b></td></tr>
+        <tr id="trendNRow"><td><b>Bil. Murid</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== D. RAK MAYA ===== -->
+<h2>D. Penggunaan Rak Maya PSS <span class="tag">STATISTIK VERCEL HOSTING</span></h2>
+<div class="stats">
+  <div class="stat"><div class="lbl">Hit Jan – Jul</div><input class="num" type="number" min="0" data-path="rak.before"><div class="sub">≈ <span data-out="rakAvgBefore"></span> hit sebulan</div></div>
+  <div class="stat"><div class="lbl">Hit Terkumpul Okt</div><input class="num" type="number" min="0" data-path="rak.cum"><div class="sub">+<span data-out="rakAfter"></span> hit (Ogos – Okt)</div></div>
+  <div class="stat"><div class="lbl">Peningkatan</div><div class="val" data-out="rakIncTxt"></div><div class="sub">≈ <span data-out="rakAvgAfter"></span> hit sebulan (Ogos – Okt)</div></div>
+</div>
+<div class="grid" style="margin-top:14px">
+  <div class="card">
+    <h3>Taburan Hit Rak Maya</h3>
+    <div class="meta">Jumlah <span data-out="rakCum"></span> hit (Jan – Okt 2026)</div>
+    <div class="chart"><canvas id="pD1"></canvas></div>
+    <div class="foot"><b data-out="rakAfterPct"></b> hit dicatat dalam tempoh Ogos – Okt</div>
+  </div>
+  <div class="card">
+    <h3>Murid Sasaran Rak Maya (Program Inklusif)</h3>
+    <div class="meta"><span data-out="total"></span> murid termasuk murid Pendidikan Khas</div>
+    <div class="chart"><canvas id="pD2"></canvas></div>
+    <div class="foot">Prasekolah & Tahun 1–6: <b data-out="mainstream"></b> · PPKI: <b data-out="ppki"></b></div>
+  </div>
+  <div class="card">
+    <h3>Purata Hit Sebulan</h3>
+    <div class="inline">Bil. bulan: Jan–Jul <input class="num sm" type="number" min="1" data-path="rak.mBefore"> Ogos–Okt <input class="num sm" type="number" min="1" data-path="rak.mAfter"></div>
+    <div class="chart" style="height:215px"><canvas id="pD3"></canvas></div>
+    <div class="foot">Kadar hit bulanan meningkat ≈ <b data-out="rakRatio"></b> kali ganda</div>
+  </div>
+</div>
+<div class="note" contenteditable="true" data-text="noteRak"><b>Program Inklusif PSS:</b> Peningkatan hit Rak Maya turut dibantu oleh program inklusif penggunaan PSS yang melibatkan murid Pendidikan Khas (PPKI) bersama murid arus perdana.<br><b>Sumber data:</b> Statistik Vercel hosting (Rak Maya PSS).</div>
+
+<!-- ===== E. AINS ===== -->
+<h2>E. Penggunaan Sistem AINS 2026 <span class="tag">LAPORAN REKOD BACAAN AINS · BOLEH DIEDIT</span></h2>
+<div class="stats">
+  <div class="stat"><div class="lbl">Pengguna Aktif AINS 2026</div><div class="val up" data-out="ainsAct"></div><div class="sub"><span data-out="ainsActPct"></span> daripada <span data-out="total"></span> murid</div></div>
+  <div class="stat"><div class="lbl">Belum Aktif</div><div class="val" data-out="ainsInact"></div><div class="sub">Murid belum menggunakan AINS</div></div>
+  <div class="stat"><div class="lbl">Rekod Bacaan 2026</div><div class="val" data-out="ainsRek"></div><div class="sub">Jumlah rekod tahun semasa</div></div>
+  <div class="stat"><div class="lbl">Purata Bacaan</div><div class="val" data-out="ainsAvg"></div><div class="sub">Rekod bacaan / pengguna aktif</div></div>
+</div>
+
+<div class="card wide" style="margin-top:14px">
+  <h3>Trend Bilangan Pengguna AINS Aktif berbanding Sasaran</h3>
+  <div class="meta">Januari – Oktober 2026 · Bilangan terkumpul · Klik pada titik bulan untuk melihat capaian</div>
+  <div class="chart"><canvas id="ainsTrend"></canvas></div>
+  <div id="ainsTrendInfo" class="foot"></div>
+  <div class="tbl" style="margin-top:12px">
+    <table>
+      <thead><tr id="ainsMHead"><th>Bulan</th></tr></thead>
+      <tbody>
+        <tr id="ainsMAct"><td><b style="color:#16a085">● Pengguna Aktif</b></td></tr>
+        <tr id="ainsMTgt"><td><b style="color:#2f80ed">● Sasaran</b></td></tr>
+        <tr id="ainsMPct"><td><b>Capaian Sasaran</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h3 style="margin:22px 0 10px;font-size:1rem">Pecahan Mengikut Tahun</h3>
+<div class="tbl">
+<table>
+  <thead><tr><th>Tahun</th><th>Pengguna Aktif AINS</th><th>Rekod Bacaan</th><th>Peratus daripada Pengguna Aktif</th></tr></thead>
+  <tbody id="ainsBody"></tbody>
+  <tfoot><tr><td>Jumlah</td><td data-out="ainsAct"></td><td data-out="ainsRek"></td><td>100%</td></tr></tfoot>
+</table>
+</div>
+<div class="grid" style="margin-top:16px">
+  <div class="card">
+    <h3>Taburan Pengguna Aktif AINS Mengikut Tahun</h3>
+    <div class="meta">Bilangan pengguna aktif tahun semasa</div>
+    <div class="chart"><canvas id="pAins1"></canvas></div>
+    <div class="foot">Jumlah pengguna aktif: <b data-out="ainsAct"></b></div>
+  </div>
+  <div class="card">
+    <h3>Pengguna Aktif berbanding Belum Aktif</h3>
+    <div class="meta">Daripada <span data-out="total"></span> murid sekolah</div>
+    <div class="chart"><canvas id="pAins2"></canvas></div>
+    <div class="foot"><b data-out="ainsAct"></b> pengguna aktif · <b data-out="ainsInact"></b> murid belum aktif</div>
+  </div>
+</div>
+<div class="note" contenteditable="true" data-text="noteAins2"><b>Sumber data:</b> Laporan Rekod Bacaan Murid Tahun Semasa 2026, Sistem AINS (ains.moe.gov.my). Laporan menyenaraikan 683 pengguna aktif; sebanyak 593 daripadanya tidak dinyatakan tahun, jadi direkodkan sebagai "Tahun tidak dinyatakan". Data bulanan Jan – Sep ialah agihan bulanan yang boleh dikemas kini; jumlah Oktober (683 pengguna aktif) mengikut laporan AINS. Sasaran dan belum aktif dikira berdasarkan jumlah murid sekolah.</div>
+
+<!-- ===== F. RINGKASAN ===== -->
+<h2>F. Ringkasan Data</h2>
+<div class="tbl">
+<table>
+  <thead><tr><th>Aspek</th><th>Bil. Murid</th><th>Jan – Jul</th><th>Ogos – Okt</th><th>Perubahan</th></tr></thead>
+  <tbody id="sumBody"></tbody>
+</table>
+</div>
+
+<!-- ===== G. AKTIVITI ===== -->
+<h2>G. Aktiviti PSS</h2>
+<div class="acts" id="acts" contenteditable="true" data-text="acts">
+  <div class="act"><b>📱 Sudut AR</b>Bahan bacaan interaktif berteknologi Augmented Reality di dalam PSS.</div>
+  <div class="act"><b>🎲 Sudut Permainan Dalaman</b>Permainan ilmiah dalaman untuk menarik minat murid ke PSS.</div>
+  <div class="act"><b>🏫 Sudut AR Sekitar Sekolah</b>Titik AR di kawasan sekolah yang menghubungkan murid dengan bahan bacaan.</div>
+  <div class="act"><b>🎮 Gamifikasi Digital</b>Aktiviti berasaskan permainan menggunakan iPad dan Smart TV.</div>
+  <div class="act"><b>🌐 Rak Maya PSS</b>Koleksi bacaan digital dalam talian yang boleh diakses murid di sekolah dan di rumah.</div>
+  <div class="act"><b>🤝 Program Inklusif PSS</b>Penglibatan murid Pendidikan Khas (PPKI) dalam aktiviti dan penggunaan PSS bersama murid arus perdana.</div>
+</div>
+
+<footer contenteditable="true" data-text="footer">Data enrolmen: Data Murid 2026. Data hit Rak Maya: statistik Vercel hosting. Bilangan murid dibundarkan.</footer>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+Chart.defaults.font.family = "'Plus Jakarta Sans', system-ui, sans-serif";
+Chart.defaults.color = '#5d6785';
+
+// ================= DATA ASAS =================
+const KEY = 'pss2026_dashboard_v5';
+const DEFAULT = {
+  enrol: { pra: 85, t: [206, 200, 202, 188, 202, 200], ppki: 48 },
+  pss: { before: 75, after: 90 },
+  trend: [74, 76, 77, 72, 71, 76, 79, 85, 90],
+  rak: { before: 1541, cum: 4551, mBefore: 7, mAfter: 3 },
+  ains: {
+    // [pengguna aktif, rekod bacaan] — Laporan AINS 2026
+    rows: [[3,0],[9,10],[4,709],[11,174],[32,4205],[31,5279],[0,0],[593,3093]],
+    act: [70, 127, 183, 217, 240, 294, 353, 480, 596, 683],
+    tgt: [133, 266, 399, 532, 666, 799, 932, 1065, 1198, 1331]
+  },
+  text: {}
+};
+const MONTHS = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogos','Sep'];
+const TAHUN = ['Tahun 1','Tahun 2','Tahun 3','Tahun 4','Tahun 5','Tahun 6'];
+const AINS_LABELS = [...TAHUN, 'PPKI (Pendidikan Khas)', 'Tahun tidak dinyatakan'];
+const AMONTHS = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogos','Sep','Okt'];
+const AINS_COLORS = ['#2f80ed','#56ccf2','#16a085','#f2994a','#8e44ad','#eb5757','#f2c94c','#95a5c6'];
+const OFF = '#d9dee9';
+
+const clone = o => JSON.parse(JSON.stringify(o));
+let D;
+try { D = JSON.parse(localStorage.getItem(KEY)); } catch (e) { D = null; }
+if (!D || !D.enrol || !Array.isArray(D.trend) || D.trend.length !== MONTHS.length || !D.ains || !Array.isArray(D.ains.rows) || D.ains.rows.length !== 8 || !Array.isArray(D.ains.act) || D.ains.act.length !== 10) D = clone(DEFAULT);
+if (!D.text) D.text = {};
+
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) {} };
+const getPath = p => p.split('.').reduce((o, k) => o[k], D);
+const setPath = (p, v) => { const ks = p.split('.'); const last = ks.pop(); ks.reduce((o, k) => o[k], D)[last] = v; };
+const fmt = v => Number(v).toLocaleString('en-MY');
+const fmt1 = v => Number(v).toLocaleString('en-MY', { maximumFractionDigits: 1 });
+const pctOf = (a, b) => b > 0 ? a / b * 100 : 0;
+const sum = a => a.reduce((x, y) => x + y, 0);
+const signed = (v, unit = '') => `${v > 0 ? '+' : ''}${fmt1(v)}${unit}`;
+
+// ================= BINA INPUT DINAMIK =================
+document.getElementById('enrolBody').innerHTML =
+  `<tr><td><b>Prasekolah</b></td><td><input class="num" type="number" min="0" data-path="enrol.pra"></td><td data-out="enrolPct.pra"></td></tr>` +
+  TAHUN.map((t, i) => `<tr><td><b>${t}</b></td><td><input class="num" type="number" min="0" data-path="enrol.t.${i}"></td><td data-out="enrolPct.t${i}"></td></tr>`).join('') +
+  `<tr><td><b>PPKI (Pendidikan Khas)</b></td><td><input class="num" type="number" min="0" data-path="enrol.ppki"></td><td data-out="enrolPct.ppki"></td></tr>`;
+
+document.getElementById('trendHead').innerHTML += MONTHS.map(m => `<th>${m}</th>`).join('');
+document.getElementById('trendPctRow').innerHTML += MONTHS.map((m, i) => `<td><input class="num sm" type="number" min="0" max="100" step="0.1" data-path="trend.${i}"></td>`).join('');
+document.getElementById('trendNRow').innerHTML += MONTHS.map((m, i) => `<td data-out="trendN.${i}"></td>`).join('');
+
+document.getElementById('ainsBody').innerHTML = AINS_LABELS.map((t, i) => `
+  <tr><td><b>${t}</b></td>
+    <td><input class="num" type="number" min="0" data-path="ains.rows.${i}.0"></td>
+    <td><input class="num" type="number" min="0" data-path="ains.rows.${i}.1"></td>
+    <td><span data-out="ainsPct.${i}"></span><div class="bar"><i id="ainsBar${i}"></i></div></td></tr>`).join('');
+
+document.getElementById('ainsMHead').innerHTML += AMONTHS.map(m => `<th>${m}</th>`).join('');
+document.getElementById('ainsMAct').innerHTML += AMONTHS.map((m, i) => `<td><input class="num sm" type="number" min="0" data-path="ains.act.${i}"></td>`).join('');
+document.getElementById('ainsMTgt').innerHTML += AMONTHS.map((m, i) => `<td><input class="num sm" type="number" min="0" data-path="ains.tgt.${i}"></td>`).join('');
+document.getElementById('ainsMPct').innerHTML += AMONTHS.map((m, i) => `<td data-out="ainsMPct.${i}"></td>`).join('');
+
+// ================= CARTA =================
+function doughnut(id, labels, colors, opts = {}) {
+  return new Chart(document.getElementById(id), {
+    type: opts.pie ? 'pie' : 'doughnut',
+    data: { labels, datasets: [{ data: labels.map(() => 0), backgroundColor: colors, borderColor: '#fff', borderWidth: 3, hoverOffset: 8 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: opts.pie ? 0 : '45%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => {
+          const tot = sum(c.dataset.data) || 1;
+          return ` ${c.label}: ${fmt(c.parsed)} ${opts.unit || 'murid'} (${fmt1(c.parsed / tot * 100)}%)`;
+        } } },
+        datalabels: {
+          color: c => (opts.twoTone && c.dataIndex === 1) ? '#5d6785' : '#fff',
+          textAlign: 'center',
+          font: c => ({ weight: '800', size: (opts.twoTone && c.dataIndex === 0) ? 18 : 11 }),
+          formatter: (v, c) => {
+            const tot = sum(c.dataset.data); if (!tot || v / tot < 0.05) return '';
+            const p = fmt1(v / tot * 100) + '%';
+            return opts.twoTone ? p : `${p}\n${fmt(v)}`;
+          }
+        }
+      }
+    }
+  });
+}
+
+const chA = doughnut('pA', ['Menggunakan PSS', 'Tidak menggunakan'], ['#0b3d91', OFF], { twoTone: true });
+const chB = doughnut('pB', ['Menggunakan PSS', 'Tidak menggunakan'], ['#16a085', OFF], { twoTone: true });
+const chD1 = doughnut('pD1', ['Jan – Jul', 'Ogos – Okt'], ['#95a5c6', '#16a085'], { unit: 'hit' });
+const chD2 = doughnut('pD2', ['Prasekolah & Tahun 1–6', 'Pendidikan Khas (PPKI)'], ['#2f80ed', '#e67e22']);
+const chAins1 = doughnut('pAins1', AINS_LABELS.map(l => l.replace(' (Pendidikan Khas)', '')), AINS_COLORS, { pie: true });
+const chAins2 = doughnut('pAins2', ['Pengguna aktif', 'Belum aktif'], ['#16a085', OFF], { twoTone: true });
+
+let selAMonth = AMONTHS.length - 1;
+const chAinsTrend = new Chart(document.getElementById('ainsTrend'), {
+  type: 'line',
+  data: { labels: AMONTHS, datasets: [
+    { label: 'Pengguna Aktif', data: [], borderColor: '#16a085', backgroundColor: 'rgba(22,160,133,0.12)', fill: true, borderWidth: 3, tension: 0.35,
+      pointBackgroundColor: '#16a085', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 6, pointHoverRadius: 9 },
+    { label: 'Sasaran', data: [], borderColor: '#2f80ed', backgroundColor: 'transparent', fill: false, borderWidth: 2.5, borderDash: [7, 5], tension: 0.2,
+      pointBackgroundColor: '#2f80ed', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 8 }
+  ] },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    onClick: (e, els) => { if (els.length) { selAMonth = els[0].index; renderAinsInfo(); } },
+    scales: { y: { beginAtZero: true, grid: { color: '#eef1f7' }, title: { display: true, text: 'Bilangan murid' } }, x: { grid: { display: false } } },
+    plugins: {
+      legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8 } },
+      tooltip: { backgroundColor: '#1b2440', padding: 10, callbacks: {
+        title: c => `${c[0].label} 2026`,
+        label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} murid`,
+        footer: c => { const i = c[0].dataIndex; return ` Capaian: ${fmt1(pctOf(D.ains.act[i], D.ains.tgt[i]))}% daripada sasaran`; }
+      } },
+      datalabels: {
+        display: c => c.datasetIndex === 0,
+        anchor: 'end', align: 'top', offset: 4, color: '#0e7a63', font: { weight: '800', size: 10 }, formatter: v => fmt(v)
+      }
+    }
+  }
+});
+
+const chD3 = new Chart(document.getElementById('pD3'), {
+  type: 'bar',
+  data: { labels: ['Jan – Jul', 'Ogos – Okt'], datasets: [{ data: [0, 0], backgroundColor: ['#95a5c6', '#16a085'], borderRadius: 8 }] },
+  options: {
+    responsive: true, maintainAspectRatio: false, layout: { padding: { top: 24 } },
+    scales: { y: { beginAtZero: true, grid: { color: '#eef1f7' } }, x: { grid: { display: false } } },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => ` ${fmt(c.parsed.y)} hit sebulan` } },
+      datalabels: { anchor: 'end', align: 'end', color: '#1b2440', font: { weight: '800', size: 12 }, formatter: v => fmt(v) + ' hit' }
+    }
+  }
+});
+
+const markStart = {
+  id: 'markStart',
+  afterDraw(chart) {
+    const x = chart.scales.x, y = chart.scales.y, ctx = chart.ctx;
+    const px = (x.getPixelForValue(6) + x.getPixelForValue(7)) / 2;
+    ctx.save();
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = '#16a085'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px, y.top); ctx.lineTo(px, y.bottom); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = '#16a085'; ctx.font = '700 11px Plus Jakarta Sans, sans-serif';
+    ctx.textAlign = 'right'; ctx.fillText('Aktiviti PSS bermula', px - 6, y.bottom - 8);
+    ctx.restore();
+  }
+};
+let selMonth = MONTHS.length - 1;
+const total = () => D.enrol.pra + sum(D.enrol.t) + D.enrol.ppki;
+const trendN = () => D.trend.map(p => Math.round(p / 100 * total()));
+const chTrend = new Chart(document.getElementById('trend'), {
+  type: 'line',
+  data: { labels: MONTHS, datasets: [{
+    label: 'Penggunaan PSS', data: [],
+    borderColor: '#0b3d91', borderWidth: 3, tension: 0.35, fill: true, backgroundColor: 'rgba(47,128,237,0.10)',
+    pointBackgroundColor: MONTHS.map((_, i) => i < 7 ? '#2f80ed' : '#16a085'), pointBorderColor: '#fff', pointBorderWidth: 2,
+    pointRadius: 7, pointHoverRadius: 10,
+    segment: { borderColor: c => c.p0DataIndex >= 6 ? '#16a085' : '#0b3d91' }
+  }] },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    onClick: (e, els) => { if (els.length) { selMonth = els[0].index; renderTrendInfo(); } },
+    scales: {
+      y: { suggestedMin: 60, max: 100, ticks: { callback: v => v + '%', stepSize: 5 }, grid: { color: '#eef1f7' } },
+      x: { grid: { display: false } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: { backgroundColor: '#1b2440', padding: 10, callbacks: {
+        title: c => `${c[0].label} 2026`,
+        label: c => ` Penggunaan: ${fmt1(c.parsed.y)}%`,
+        afterLabel: c => ` Murid terlibat: ${fmt(trendN()[c.dataIndex])} / ${fmt(total())}`
+      } },
+      datalabels: { anchor: 'end', align: 'top', offset: 6, color: '#1b2440', font: { weight: '800', size: 11 }, formatter: v => fmt1(v) + '%' }
+    }
+  },
+  plugins: [markStart]
+});
+
+// ================= KIRAAN & PAPARAN =================
+function renderTrendInfo() {
+  const i = selMonth, n = trendN();
+  const prev = i > 0 ? D.trend[i] - D.trend[i - 1] : null;
+  const col = prev === null ? '' : (prev < 0 ? 'down' : 'up');
+  document.getElementById('trendInfo').innerHTML =
+    `<b>${MONTHS[i]} 2026</b> · ${i < 7 ? 'Jan – Jul' : 'Ogos – Sep'} — Penggunaan PSS <b>${fmt1(D.trend[i])}%</b> · ` +
+    `<b>${fmt(n[i])} murid</b> daripada ${fmt(total())} murid` +
+    (prev !== null ? ` · Perubahan dari bulan lepas: <b class="${col}">${signed(prev, '%')}</b>` : '');
+}
+
+function renderAinsInfo() {
+  const i = selAMonth, a = D.ains.act[i], t = D.ains.tgt[i];
+  const prev = i > 0 ? a - D.ains.act[i - 1] : null;
+  document.getElementById('ainsTrendInfo').innerHTML =
+    `<b>${AMONTHS[i]} 2026</b> — Pengguna aktif <b class="up">${fmt(a)}</b> · Sasaran <b style="color:#2f80ed">${fmt(t)}</b> · ` +
+    `Capaian <b>${fmt1(pctOf(a, t))}%</b>` + (prev !== null ? ` · Pertambahan dari bulan lepas: <b class="${prev < 0 ? 'down' : 'up'}">${signed(prev)} murid</b>` : '');
+}
+
+function render() {
+  const T = total();
+  const out = {};
+  out.total = fmt(T);
+  out.totalTag = fmt(T) + ' MURID';
+
+  // enrolmen
+  out['enrolPct.pra'] = fmt1(pctOf(D.enrol.pra, T)) + '%';
+  D.enrol.t.forEach((v, i) => out[`enrolPct.t${i}`] = fmt1(pctOf(v, T)) + '%');
+  out['enrolPct.ppki'] = fmt1(pctOf(D.enrol.ppki, T)) + '%';
+
+  // PSS
+  const nB = Math.round(D.pss.before / 100 * T), nA = Math.round(D.pss.after / 100 * T);
+  const dP = D.pss.after - D.pss.before, dN = nA - nB;
+  Object.assign(out, {
+    pssBefore: fmt1(D.pss.before), pssAfter: fmt1(D.pss.after),
+    pssNBefore: fmt(nB), pssNAfter: fmt(nA),
+    pssDiffTxt: `${signed(dP)} mata peratus`, pssNDiffTxt: `${signed(dN)} murid`,
+    pssAfterDiff: `<b class="${dP < 0 ? 'down' : 'up'}">(${signed(dP, '%')}, ${signed(dN)} murid)</b>`
+  });
+  chA.data.datasets[0].data = [nB, Math.max(T - nB, 0)]; chA.update();
+  chB.data.datasets[0].data = [nA, Math.max(T - nA, 0)]; chB.update();
+
+  // trend
+  trendN().forEach((v, i) => out[`trendN.${i}`] = fmt(v));
+  chTrend.data.datasets[0].data = [...D.trend]; chTrend.update();
+
+  // rak maya
+  const r = D.rak, after = Math.max(r.cum - r.before, 0);
+  const avgB = r.mBefore > 0 ? Math.round(r.before / r.mBefore) : 0;
+  const avgA = r.mAfter > 0 ? Math.round(after / r.mAfter) : 0;
+  const inc = pctOf(r.cum - r.before, r.before);
+  Object.assign(out, {
+    rakCum: fmt(r.cum), rakAfter: fmt(after), rakAvgBefore: fmt(avgB), rakAvgAfter: fmt(avgA),
+    rakIncTxt: `<span class="${inc < 0 ? 'down' : 'up'}">${signed(inc, '%')}</span>`,
+    rakAfterPct: fmt1(pctOf(after, r.cum)) + '%',
+    rakRatio: avgB > 0 ? fmt1(avgA / avgB) : '–',
+    mainstream: fmt(T - D.enrol.ppki), ppki: fmt(D.enrol.ppki)
+  });
+  chD1.data.datasets[0].data = [r.before, after]; chD1.update();
+  chD2.data.datasets[0].data = [T - D.enrol.ppki, D.enrol.ppki]; chD2.update();
+  chD3.data.datasets[0].data = [avgB, avgA]; chD3.update();
+
+  // AINS
+  const rows = D.ains.rows;
+  const act = sum(rows.map(x => x[0])), rek = sum(rows.map(x => x[1]));
+  rows.forEach((x, i) => {
+    const p = pctOf(x[0], act);
+    out[`ainsPct.${i}`] = fmt1(p) + '%';
+    document.getElementById('ainsBar' + i).style.width = Math.min(p, 100) + '%';
+  });
+  Object.assign(out, {
+    ainsAct: fmt(act), ainsRek: fmt(rek), ainsInact: fmt(Math.max(T - act, 0)),
+    ainsActPct: fmt1(pctOf(act, T)) + '%', ainsAvg: act > 0 ? fmt(Math.round(rek / act)) : '0'
+  });
+  D.ains.act.forEach((v, i) => out[`ainsMPct.${i}`] = fmt1(pctOf(v, D.ains.tgt[i])) + '%');
+  chAins1.data.datasets[0].data = rows.map(x => x[0]); chAins1.update();
+  chAins2.data.datasets[0].data = [act, Math.max(T - act, 0)]; chAins2.update();
+  chAinsTrend.data.datasets[0].data = [...D.ains.act];
+  chAinsTrend.data.datasets[1].data = [...D.ains.tgt];
+  chAinsTrend.update();
+
+  // ringkasan
+  document.getElementById('sumBody').innerHTML = `
+    <tr><td>Penggunaan PSS</td><td>${fmt(T)}</td><td>${fmt1(D.pss.before)}% (≈${fmt(nB)})</td><td>${fmt1(D.pss.after)}% (≈${fmt(nA)})</td><td class="${dP < 0 ? 'down' : 'up'}"><b>${signed(dP, '%')}</b></td></tr>
+    <tr><td>Hit Rak Maya (termasuk PPKI)</td><td>${fmt(T)}</td><td>${fmt(r.before)} hit</td><td>${fmt(r.cum)} hit terkumpul</td><td class="${inc < 0 ? 'down' : 'up'}"><b>${signed(inc, '%')}</b></td></tr>
+    <tr><td>Pengguna Aktif AINS</td><td>${fmt(T)}</td><td>${fmt(D.ains.act[6])} murid (Jul)</td><td>${fmt(D.ains.act[9])} murid (Okt)</td><td class="up"><b>${signed(D.ains.act[9] - D.ains.act[6])} murid</b></td></tr>
+    <tr><td>Rekod Bacaan AINS 2026</td><td>${fmt(act)} pengguna aktif</td><td>–</td><td>${fmt(rek)} rekod</td><td>–</td></tr>`;
+
+  // tulis output
+  document.querySelectorAll('[data-out]').forEach(el => {
+    const k = el.dataset.out;
+    if (k in out) el.innerHTML = out[k];
+  });
+  // segerak input (kecuali yang sedang ditaip)
+  document.querySelectorAll('input[data-path]').forEach(inp => {
+    if (inp !== document.activeElement) inp.value = getPath(inp.dataset.path);
+  });
+  renderTrendInfo();
+  renderAinsInfo();
+  save();
+}
+
+// ================= EVENT =================
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.matches && el.matches('input[data-path]')) {
+    let v = parseFloat(el.value);
+    if (isNaN(v) || v < 0) v = 0;
+    if (el.max && v > +el.max) v = +el.max;
+    setPath(el.dataset.path, v);
+    render();
+    markDirty();
+  }
+});
+document.addEventListener('blur', e => {
+  if (e.target.matches && e.target.matches('input[data-path]')) e.target.value = getPath(e.target.dataset.path);
+}, true);
+
+// teks boleh diedit
+document.querySelectorAll('[data-text]').forEach(el => {
+  const k = el.dataset.text;
+  if (D.text[k]) el.innerHTML = D.text[k];
+  el.addEventListener('input', () => { D.text[k] = el.innerHTML; save(); markDirty(); });
+});
+
+// ================= GOOGLE SHEET =================
+const URL_KEY = 'pss2026_sheet_url';
+let sheetUrl = '';
+try { sheetUrl = localStorage.getItem(URL_KEY) || ''; } catch (e) {}
+const urlInput = document.getElementById('sheetUrl');
+urlInput.value = sheetUrl;
+const statusEl = document.getElementById('syncStatus');
+function setStatus(txt, cls) { statusEl.textContent = txt; statusEl.className = 'pill ' + (cls || ''); }
+
+let saveTimer = null, saving = false, pending = false;
+function markDirty() {
+  if (!sheetUrl) return;
+  setStatus('Perubahan belum disimpan…', 'busy');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(pushToSheet, 1200);
+}
+async function pushToSheet() {
+  if (!sheetUrl) return;
+  if (saving) { pending = true; return; }
+  saving = true; setStatus('Menyimpan ke Google Sheet…', 'busy');
+  try {
+    const res = await fetch(sheetUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(D) });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'Ralat');
+    setStatus('Tersimpan ✓ ' + new Date().toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }), 'ok');
+  } catch (e) {
+    setStatus('Gagal simpan, cuba lagi', 'err');
+  }
+  saving = false;
+  if (pending) { pending = false; pushToSheet(); }
+}
+function applyText() {
+  document.querySelectorAll('[data-text]').forEach(el => { const k = el.dataset.text; if (D.text[k]) el.innerHTML = D.text[k]; });
+}
+async function loadFromSheet() {
+  if (!sheetUrl) { setStatus('Belum disambung'); return; }
+  setStatus('Memuat data dari Sheet…', 'busy');
+  try {
+    const res = await fetch(sheetUrl);
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'Ralat');
+    const d = j.data;
+    if (d && d.enrol && Array.isArray(d.trend) && d.ains && Array.isArray(d.ains.rows)) {
+      D = { ...clone(DEFAULT), ...d, text: { ...(d.text || {}) } };
+      applyText();
+      render();
+    }
+    setStatus('Disambung ✓ data dari Sheet', 'ok');
+  } catch (e) {
+    setStatus('Gagal sambung, semak URL', 'err');
+  }
+}
+document.getElementById('sheetConnect').addEventListener('click', async () => {
+  sheetUrl = urlInput.value.trim();
+  try { localStorage.setItem(URL_KEY, sheetUrl); } catch (e) {}
+  if (!sheetUrl) { setStatus('Belum disambung'); return; }
+  await loadFromSheet();
+});
+document.getElementById('sheetReload').addEventListener('click', loadFromSheet);
+
+document.getElementById('resetAll').addEventListener('click', () => {
+  if (!confirm('Set semula semua data dan teks kepada nilai asal? Jika Google Sheet disambung, data dalam Sheet juga akan ditukar.')) return;
+  D = clone(DEFAULT);
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  if (sheetUrl) { pushToSheet().then(() => location.reload()); } else { location.reload(); }
+});
+
+render();
+loadFromSheet();
+</script>
+</body>
+</html>
